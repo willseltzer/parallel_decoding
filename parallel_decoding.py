@@ -82,9 +82,10 @@ def get_point_expanding_template(prompt: str, skeleton: str, scaffolding: str) -
     You’re responsible for continuing the writing of one and only one point in the overall answer to the following
     question.
     {prompt}
-    The skeleton of the answer is
+    The outline of the full answer is:
     {skeleton}
-    Continue and only continue the writing of point {scaffolding}. Expand on it and do not continue with other points!
+
+    Continue the above and only continue the writing of point {scaffolding}. Expand on it in a single sentence and do not continue with other points!
     """
 
     return point_expanding_template.format(
@@ -105,12 +106,12 @@ async def parallel_coroutine(
     scaffoldings: List[str],
     prompt: str,
     skeleton: str,
+    model: str
 ) -> List[str]:
     
     prompts: List[List[dict]]=[[{"content":get_point_expanding_template(prompt, skeleton, scaffold), "role": "user"}] for scaffold in scaffoldings]
-    
     coroutines = [
-        openai_async(messages=prompt, model="gpt-3.5-turbo")
+        openai_async(messages=prompt, model=model)
         for prompt in prompts
     ]
     return await asyncio.gather(*coroutines)
@@ -128,9 +129,14 @@ async def main(prompt: str, num_iterations: int, model: str) -> List[Result]:
 
 
 def run_normal(prompt: str, model: str) -> Result:
+    print("\nCOMPUTING NORMAL RESPONSE...")
     start = time.time()
     try:
         model_response: str = openai_sync(messages=[{"content": prompt, "role": "user"}], model=model)
+        normal_response_str = "NORMAL RESPONSE"
+        dashes = "-" * len(normal_response_str)
+        print("\n".join([dashes, normal_response_str, dashes]))
+        print(model_response)
     except Exception as e:
         print(f"An error occurred: {e}")
         return
@@ -148,15 +154,27 @@ async def run_parallel(prompt: str, model: str) -> Result:
     skeleton = get_skeleton_template(prompt=prompt)
     start = time.time()
     try:
-        model_response: str = openai_sync(messages=[{"content": skeleton, "role": "user"}], model=model)
-        total_resp = [x for x in model_response]
+        skeleton_response: str = openai_sync(messages=[{"content": skeleton, "role": "user"}], model=model)
+        skeleton_str = "SKELETON"
+        dashes = "-" * len(skeleton_str)
+        print("\n".join([dashes, skeleton_str, dashes]))
+        print(skeleton_response)
+        total_resp = [x for x in skeleton_response]
         scaffoldings: List[str] = "".join(total_resp).split("\n")
         responses: List[str] = await parallel_coroutine(
                 scaffoldings=scaffoldings,
                 prompt=prompt,
                 skeleton=skeleton,
+                model=model
             )
-        final_response = "".join(responses)
+        # sort the responses by number
+        responses = map(lambda s: s.strip("Skeleton:").lstrip(), responses)
+        sorted_responses = sorted(responses, key=lambda s: int(s.split(".")[0]))
+        final_response_str = "FINAL RESPONSE"
+        dashes = "-" * len(final_response_str)
+        print("\n".join([dashes, final_response_str, dashes])) 
+        print("\n".join(sorted_responses))
+        final_response = "\n".join(sorted_responses)
     except Exception as e:
         print(f"An error occurred: {e}")
         return
@@ -173,8 +191,12 @@ async def run_parallel(prompt: str, model: str) -> Result:
 
 if __name__ == "__main__":
     openai.api_key = os.getenv("OPENAI_API_KEY")
-    prompt = "Articulate ten principles of good software engineering."
-    results = asyncio.run(main(prompt=prompt, num_iterations=5, model="gpt-3.5-turbo"))
+    prompt = "Give me five ideas of mediterranean food I can cook for dinner."
+    query_str = "QUERY"
+    dashes = "-" * len(query_str)
+    print("\n".join([dashes, query_str, dashes]))
+    print(prompt)
+    results = asyncio.run(main(prompt=prompt, num_iterations=1, model="gpt-4"))
     df = pd.DataFrame(results)
     desc = df[['tokens_per_second', 'openai_call_type']].groupby("openai_call_type").describe()
-    print(desc)
+    print(desc['tokens_per_second'][['min', '25%','50%','75%', 'max']])
