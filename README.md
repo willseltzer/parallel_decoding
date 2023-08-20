@@ -22,5 +22,9 @@ However, this approach performs poorly on math and fermi estiamtes where you wan
 <img width="534" alt="Screenshot 2023-08-20 at 4 42 27 PM" src="https://github.com/willseltzer/parallel_decoding/assets/1661264/1c0b8fe5-3797-424c-a0c7-20614382dfc4">
 <img width="554" alt="Screenshot 2023-08-20 at 4 43 12 PM" src="https://github.com/willseltzer/parallel_decoding/assets/1661264/eef74ccd-7fe1-4471-b1ce-835edbab8d02">
 
-# How to experiment
-* Set OPENAI_API_KEY to your openai api key. 
+# Getting started
+1. Install Poetry if it's not already installed: `curl -sSL https://install.python-poetry.org | bash`
+2. Install project dependencies with Poetry: `poetry install`
+3. Activate Poetry's shell to use the project-specific virtual environment: `poetry shell`
+4. Set your OpenAI API key as an environment variable: `export OPENAI_API_KEY='your-api-key'`
+
