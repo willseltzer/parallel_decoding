@@ -27,4 +27,5 @@ However, this approach performs poorly on math and fermi estimates where you wan
 2. Install project dependencies with Poetry: `poetry install`
 3. Activate Poetry's shell to use the project-specific virtual environment: `poetry shell`
 4. Set your OpenAI API key as an environment variable: `export OPENAI_API_KEY='your-api-key'`
+5. `python3 parallel_decoding.py`
 
