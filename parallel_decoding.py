@@ -48,8 +48,7 @@ def get_skeleton_template(prompt: str) -> str:
     skeleton_template = """
     You’re an organizer responsible for only giving the skeleton (not the full content) for answering the question.
     Provide the skeleton in a list of points (numbered 1., 2., 3., etc.) to answer the question. Instead of writing a full
-    sentence, each skeleton point should be very short with only 3∼5 words. Generally, the skeleton should have 3∼10
-    points.
+    sentence, each skeleton point should be very short with only 3∼5 words.
     Question:
     What are the typical types of Chinese dishes?
     Skeleton:
@@ -85,8 +84,7 @@ def get_point_expanding_template(prompt: str, skeleton: str, scaffolding: str) -
     {prompt}
     The skeleton of the answer is
     {skeleton}
-    Continue and only continue the writing of point {scaffolding}. Write it **very shortly** in 1∼2 sentence and
-    do not continue with other points!
+    Continue and only continue the writing of point {scaffolding}. Expand on it and do not continue with other points!
     """
 
     return point_expanding_template.format(
