@@ -17,6 +17,7 @@ Then you send a parallel request for each subcomponent with one request per "poi
 You could also imagine this working well for code, where you ask the scaffolding to give you the function interfaces. Then you dispatch each function to be written. This assumes the functions don't depend on each other in any way (no global state).
 
 However, this approach performs poorly on math and Fermi estimates where you want chain-of-thought reasoning. 
+
 <img width="534" alt="Screenshot 2023-08-20 at 4 42 27 PM" src="https://github.com/willseltzer/parallel_decoding/assets/1661264/1c0b8fe5-3797-424c-a0c7-20614382dfc4">
 <img width="554" alt="Screenshot 2023-08-20 at 4 43 12 PM" src="https://github.com/willseltzer/parallel_decoding/assets/1661264/eef74ccd-7fe1-4471-b1ce-835edbab8d02">
 
