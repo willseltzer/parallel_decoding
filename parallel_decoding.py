@@ -39,6 +39,9 @@ class Result:
         encoded = encoding.encode(self.model_response)
         return len(encoded) / self.time_seconds
 
+def enclose_in_lines(text: str) -> str:
+    """Enclose the given text in lines."""
+    return "\n".join(["-" * len(text), text, "-" * len(text)])
 
 
 
@@ -72,12 +75,11 @@ def get_skeleton_template(prompt: str) -> str:
     Now, please provide the skeleton for the following question.
     {prompt}
     """
-
     return skeleton_template.format(prompt=prompt)
 
 
-def get_point_expanding_template(prompt: str, skeleton: str, scaffolding: str) -> str:
-    """Generate point expanding template for the given question, skeleton, and scaffolding."""
+def get_point_expanding_template(prompt: str, skeleton: str, subcomponent: str) -> str:
+    """Generate point expanding template for the given question, skeleton, and subcomponent."""
     point_expanding_template = """
     You’re responsible for continuing the writing of one and only one point in the overall answer to the following
     question.
@@ -85,11 +87,11 @@ def get_point_expanding_template(prompt: str, skeleton: str, scaffolding: str) -
     The outline of the full answer is:
     {skeleton}
 
-    Continue the above and only continue the writing of point {scaffolding}. Expand on it in a single sentence and do not continue with other points!
+    Continue the above and only continue the writing of point {subcomponent}. Expand on it in a single sentence and do not continue with other points!
     """
 
     return point_expanding_template.format(
-        prompt=prompt, skeleton=skeleton, scaffolding=scaffolding
+        prompt=prompt, skeleton=skeleton, subcomponent=subcomponent
     )
 
 
@@ -103,13 +105,13 @@ def openai_sync(messages: List[str], model) -> str:
     return resp["choices"][0]["message"]["content"]
 
 async def parallel_coroutine(
-    scaffoldings: List[str],
+    subcomponent: List[str],
     prompt: str,
     skeleton: str,
     model: str
 ) -> List[str]:
     
-    prompts: List[List[dict]]=[[{"content":get_point_expanding_template(prompt, skeleton, scaffold), "role": "user"}] for scaffold in scaffoldings]
+    prompts: List[List[dict]]=[[{"content":get_point_expanding_template(prompt, skeleton, subcomponent), "role": "user"}] for subcomponent in subcomponent]
     coroutines = [
         openai_async(messages=prompt, model=model)
         for prompt in prompts
@@ -133,9 +135,7 @@ def run_normal(prompt: str, model: str) -> Result:
     start = time.time()
     try:
         model_response: str = openai_sync(messages=[{"content": prompt, "role": "user"}], model=model)
-        normal_response_str = "NORMAL RESPONSE"
-        dashes = "-" * len(normal_response_str)
-        print("\n".join([dashes, normal_response_str, dashes]))
+        print(enclose_in_lines("NORMAL RESPONSE"))
         print(model_response)
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -155,14 +155,12 @@ async def run_parallel(prompt: str, model: str) -> Result:
     start = time.time()
     try:
         skeleton_response: str = openai_sync(messages=[{"content": skeleton, "role": "user"}], model=model)
-        skeleton_str = "SKELETON"
-        dashes = "-" * len(skeleton_str)
-        print("\n".join([dashes, skeleton_str, dashes]))
+        enclose_in_lines("SKELETON")
         print(skeleton_response)
         total_resp = [x for x in skeleton_response]
-        scaffoldings: List[str] = "".join(total_resp).split("\n")
+        subcomponent: List[str] = "".join(total_resp).split("\n")
         responses: List[str] = await parallel_coroutine(
-                scaffoldings=scaffoldings,
+                subcomponent=subcomponent,
                 prompt=prompt,
                 skeleton=skeleton,
                 model=model
@@ -170,11 +168,9 @@ async def run_parallel(prompt: str, model: str) -> Result:
         # sort the responses by number
         responses = map(lambda s: s.strip("Skeleton:").lstrip(), responses)
         sorted_responses = sorted(responses, key=lambda s: int(s.split(".")[0]))
-        final_response_str = "FINAL RESPONSE"
-        dashes = "-" * len(final_response_str)
-        print("\n".join([dashes, final_response_str, dashes])) 
-        print("\n".join(sorted_responses))
         final_response = "\n".join(sorted_responses)
+        print(enclose_in_lines("FINAL RESPONSE"))
+        print(final_response)
     except Exception as e:
         print(f"An error occurred: {e}")
         return
