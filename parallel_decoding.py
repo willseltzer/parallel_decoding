@@ -39,9 +39,9 @@ class Result:
         encoded = encoding.encode(self.model_response)
         return len(encoded) / self.time_seconds
 
-def enclose_in_lines(text: str) -> str:
+def print_enclosed_in_lines(text: str) -> None:
     """Enclose the given text in lines."""
-    return "\n".join(["-" * len(text), text, "-" * len(text)])
+    print("\n" + "\n".join(["-" * (len(text)),  text, "-" * (len(text))]))
 
 
 
@@ -78,8 +78,8 @@ def get_skeleton_template(prompt: str) -> str:
     return skeleton_template.format(prompt=prompt)
 
 
-def get_point_expanding_template(prompt: str, skeleton: str, subcomponent: str) -> str:
-    """Generate point expanding template for the given question, skeleton, and subcomponent."""
+def get_point_expanding_template(prompt: str, skeleton: str, subtask: str) -> str:
+    """Generate point expanding template for the given question, skeleton, and subtask."""
     point_expanding_template = """
     You’re responsible for continuing the writing of one and only one point in the overall answer to the following
     question.
@@ -87,11 +87,11 @@ def get_point_expanding_template(prompt: str, skeleton: str, subcomponent: str) 
     The outline of the full answer is:
     {skeleton}
 
-    Continue the above and only continue the writing of point {subcomponent}. Expand on it in a single sentence and do not continue with other points!
+    Continue the above and only continue the writing of point {subtask}. Expand on it in a single sentence and do not continue with other points!
     """
 
     return point_expanding_template.format(
-        prompt=prompt, skeleton=skeleton, subcomponent=subcomponent
+        prompt=prompt, skeleton=skeleton, subtask=subtask
     )
 
 
@@ -105,13 +105,13 @@ def openai_sync(messages: List[str], model) -> str:
     return resp["choices"][0]["message"]["content"]
 
 async def parallel_coroutine(
-    subcomponent: List[str],
+    subtask: List[str],
     prompt: str,
     skeleton: str,
     model: str
 ) -> List[str]:
     
-    prompts: List[List[dict]]=[[{"content":get_point_expanding_template(prompt, skeleton, subcomponent), "role": "user"}] for subcomponent in subcomponent]
+    prompts: List[List[dict]]=[[{"content":get_point_expanding_template(prompt, skeleton, subtask), "role": "user"}] for subtask in subtask]
     coroutines = [
         openai_async(messages=prompt, model=model)
         for prompt in prompts
@@ -135,7 +135,7 @@ def run_normal(prompt: str, model: str) -> Result:
     start = time.time()
     try:
         model_response: str = openai_sync(messages=[{"content": prompt, "role": "user"}], model=model)
-        print(enclose_in_lines("NORMAL RESPONSE"))
+        print_enclosed_in_lines("NORMAL RESPONSE")
         print(model_response)
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -155,12 +155,12 @@ async def run_parallel(prompt: str, model: str) -> Result:
     start = time.time()
     try:
         skeleton_response: str = openai_sync(messages=[{"content": skeleton, "role": "user"}], model=model)
-        enclose_in_lines("SKELETON")
+        print_enclosed_in_lines("SKELETON")
         print(skeleton_response)
         total_resp = [x for x in skeleton_response]
-        subcomponent: List[str] = "".join(total_resp).split("\n")
+        subtask: List[str] = "".join(total_resp).split("\n")
         responses: List[str] = await parallel_coroutine(
-                subcomponent=subcomponent,
+                subtask=subtask,
                 prompt=prompt,
                 skeleton=skeleton,
                 model=model
@@ -168,9 +168,9 @@ async def run_parallel(prompt: str, model: str) -> Result:
         # sort the responses by number
         responses = map(lambda s: s.strip("Skeleton:").lstrip(), responses)
         sorted_responses = sorted(responses, key=lambda s: int(s.split(".")[0]))
-        final_response = "\n".join(sorted_responses)
-        print(enclose_in_lines("FINAL RESPONSE"))
-        print(final_response)
+        parallel_response = "\n".join(sorted_responses)
+        print_enclosed_in_lines("PARALLEL RESPONSE")
+        print(parallel_response)
     except Exception as e:
         print(f"An error occurred: {e}")
         return
@@ -178,7 +178,7 @@ async def run_parallel(prompt: str, model: str) -> Result:
 
     return Result(
         prompt=prompt,
-        model_response=final_response,
+        model_response=parallel_response,
         model=model,
         time_seconds=end - start,
         openai_call_type=CallType.PARALLEL,
@@ -188,11 +188,10 @@ async def run_parallel(prompt: str, model: str) -> Result:
 if __name__ == "__main__":
     openai.api_key = os.getenv("OPENAI_API_KEY")
     prompt = "Give me five ideas of mediterranean food I can cook for dinner."
-    query_str = "QUERY"
-    dashes = "-" * len(query_str)
-    print("\n".join([dashes, query_str, dashes]))
+    print_enclosed_in_lines("QUERY")
     print(prompt)
     results = asyncio.run(main(prompt=prompt, num_iterations=1, model="gpt-4"))
     df = pd.DataFrame(results)
     desc = df[['tokens_per_second', 'openai_call_type']].groupby("openai_call_type").describe()
+    print_enclosed_in_lines("TOKENS PER SECOND")
     print(desc['tokens_per_second'][['min', '25%','50%','75%', 'max']])
