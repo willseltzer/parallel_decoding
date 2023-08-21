@@ -14,7 +14,7 @@ This approach seems to be effective for queries where the query has independent 
 
 Then you send a parallel request for each subcomponent with one request per "point". 
 
-You could also imagine this working well for code, where you ask the scaffolding to give you the function interfaces. Then you dispatch each function to be written. This assumes the functions don't depend on each other in any way (no global state).
+You could also imagine this working well for code, where you first ask for a skeleton of the function interfaces. Then you dispatch a request to write the internals of each function. This assumes the functions don't depend on each other in any way (no global state).
 
 However, this approach performs poorly on math and Fermi estimates where you want chain-of-thought reasoning. 
 
